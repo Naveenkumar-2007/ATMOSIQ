@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>AtmosIQ - Model Leaderboard</title>
+<style>
+body{font-family:Inter,Segoe UI,sans-serif;background:#0b1220;color:#e6edf7;margin:0;padding:24px}
+h1{font-size:22px}h2{font-size:15px;color:#38bdf8;margin-top:24px}
+table{border-collapse:collapse;width:100%;margin-top:8px}
+th,td{padding:8px 10px;border-bottom:1px solid #22304a;text-align:left;font-size:13px}
+th{color:#8fa3bf}
+.badge{padding:2px 10px;border-radius:999px;font-size:11px;background:rgba(74,222,128,.15);color:#4ade80}
+</style>
+</head>
+<body>
+<h1>Model Leaderboard <span class="badge">test-set metrics</span></h1>
+<h2>Temperature MAE by model (+24h) - lower is better</h2>
+<svg id="chart" viewBox="0 0 700 260"></svg>
+<h2>Full leaderboard</h2>
+<table id="tbl"><thead><tr><th>Model</th><th>Task</th><th>Horizon</th><th>MAE</th><th>RMSE</th><th>Skill</th><th>PR-AUC</th></tr></thead><tbody></tbody></table>
+<script>
+const API="http://localhost:8000";
+async function load(){
+  const rows = await (await fetch(API+"/api/v1/models/leaderboard")).json();
+  const tbody=document.querySelector("#tbl tbody");
+  rows.forEach(r=>{
+    const tr=document.createElement("tr");
+    [r.model,r.task,r.horizon, r.mae?r.mae.toFixed(3):"-", r.rmse?r.rmse.toFixed(3):"-",
+     r.skill_vs_persistence?r.skill_vs_persistence.toFixed(2):"-", r.pr_auc?r.pr_auc.toFixed(2):"-"]
+     .forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td);});
+    tbody.appendChild(tr);
+  });
+  const t24 = rows.filter(r=>r.task==="temperature"&&r.horizon===24&&r.mae!=null).sort((a,b)=>a.mae-b.mae);
+  const svg=document.getElementById("chart");
+  const W=700,H=260,pad=40;
+  const max=Math.max(...t24.map(r=>r.mae),1e-9);
+  const bw=(W-2*pad)/Math.max(t24.length,1)*0.6;
+  t24.forEach((r,i)=>{
+    const x=pad+i*((W-2*pad)/t24.length);
+    const h=(r.mae/max)*(H-2*pad);
+    const rect=document.createElementNS("http://www.w3.org/2000/svg","rect");
+    rect.setAttribute("x",x);rect.setAttribute("y",H-pad-h);rect.setAttribute("width",bw);rect.setAttribute("height",h);
+    rect.setAttribute("fill", i===0 ? "#4ade80" : "#3b82f6");
+    svg.appendChild(rect);
+    const t=document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x",x);t.setAttribute("y",H-pad+14);t.setAttribute("fill","#8fa3bf");t.setAttribute("font-size","10");
+    t.textContent=r.model;svg.appendChild(t);
+    const v=document.createElementNS("http://www.w3.org/2000/svg","text");
+    v.setAttribute("x",x);v.setAttribute("y",H-pad-h-4);v.setAttribute("fill","#e6edf7");v.setAttribute("font-size","10");
+    v.textContent=r.mae.toFixed(2);svg.appendChild(v);
+  });
+}
+load();
+</script>
+</body>
+</html>

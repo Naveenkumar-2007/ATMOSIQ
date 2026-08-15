@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Data / artifacts / logs (never commit)
+artifacts/
+logs/
+*.db
+*.sqlite
+*.parquet
+mlruns/
+mlflow.db
+final_model/
+saved_models/
+
+# Secrets / env
+.env
+.env.*
+*.pem
+*.key
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+frontend/out/
+
+# IDE / Antigravity
+.vscode/
+.idea/
+.DS_Store
+.gemini/
+.agents/

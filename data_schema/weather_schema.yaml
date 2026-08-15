@@ -1,0 +1,19 @@
+canonical_hourly:
+  time: datetime64[ns, UTC]
+  temperature_2m: float64
+  relative_humidity_2m: float64
+  dew_point_2m: float64
+  apparent_temperature: float64
+  precipitation: float64
+  rain: float64
+  showers: float64
+  snowfall: float64
+  precipitation_probability: float64
+  pressure_msl: float64
+  surface_pressure: float64
+  cloud_cover: float64
+  visibility: float64
+  wind_speed_10m: float64
+  wind_direction_10m: float64
+  wind_gusts_10m: float64
+  weather_code: int64

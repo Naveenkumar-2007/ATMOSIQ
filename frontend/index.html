@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AtmosIQ — AI Weather Intelligence & MLOps Platform</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+<body class="theme-dark">
+  <header id="topbar">
+    <div class="brand">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">Atmos<span>IQ</span></div>
+      <span class="version-badge">v2.4.0 ML</span>
+    </div>
+
+    <div class="search-box">
+      <span class="search-icon">📍</span>
+      <select id="locSelect" aria-label="Select City"></select>
+    </div>
+
+    <div id="quickWeatherPill" class="quick-pill">
+      <span class="pill-icon">🌤️</span>
+      <span class="pill-temp">--°C</span>
+      <span class="pill-cond">Loading...</span>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="top-actions">
+      <span id="dateLabel" class="live-clock">--:--:-- IST</span>
+      <button id="themeToggle" class="icon-btn" title="Toggle Light/Dark Theme">🌙</button>
+      <button id="refreshBtn" class="refresh-btn" title="Refresh Live Data">
+        <span class="spin-icon">&#8635;</span> Refresh
+      </button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside id="sidebar">
+      <nav id="navMenu"></nav>
+      <div class="sidebar-footer">
+        <div class="system-indicator">
+          <span class="pulse-dot"></span>
+          <span>System Healthy • v2.4.0</span>
+        </div>
+      </div>
+    </aside>
+    <main id="content">
+      <div id="loadingSpinner" class="page-loader">
+        <div class="spinner"></div>
+        <div class="loader-text">Loading Weather Intelligence...</div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

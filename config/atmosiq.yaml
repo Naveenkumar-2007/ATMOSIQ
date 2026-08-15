@@ -1,0 +1,82 @@
+project: AtmosIQ
+locations:
+  - { id: kavali, name: Kavali, latitude: 15.4833, longitude: 79.9167, elevation: 15.0, timezone: Asia/Kolkata }
+  - { id: nellore, name: Nellore, latitude: 14.4426, longitude: 79.9865, elevation: 19.0, timezone: Asia/Kolkata }
+  - { id: tirupati, name: Tirupati, latitude: 13.6288, longitude: 79.4192, elevation: 161.0, timezone: Asia/Kolkata }
+  - { id: ongole, name: Ongole, latitude: 15.5057, longitude: 80.0499, elevation: 24.0, timezone: Asia/Kolkata }
+  - { id: chittoor, name: Chittoor, latitude: 13.2172, longitude: 79.1003, elevation: 315.0, timezone: Asia/Kolkata }
+  - { id: vijayawada, name: Vijayawada, latitude: 16.5062, longitude: 80.6480, elevation: 11.0, timezone: Asia/Kolkata }
+  - { id: guntur, name: Guntur, latitude: 16.3067, longitude: 80.4428, elevation: 33.0, timezone: Asia/Kolkata }
+  - { id: kurnool, name: Kurnool, latitude: 15.8281, longitude: 78.0373, elevation: 273.0, timezone: Asia/Kolkata }
+  - { id: visakhapatnam, name: Visakhapatnam, latitude: 17.6868, longitude: 83.2185, elevation: 45.0, timezone: Asia/Kolkata }
+  - { id: kakinada, name: Kakinada, latitude: 16.9891, longitude: 82.2475, elevation: 2.0, timezone: Asia/Kolkata }
+  - { id: rajahmundry, name: Rajahmundry, latitude: 17.0005, longitude: 81.8040, elevation: 14.0, timezone: Asia/Kolkata }
+  - { id: chennai, name: Chennai, latitude: 13.0827, longitude: 80.2707, elevation: 6.0, timezone: Asia/Kolkata }
+  - { id: coimbatore, name: Coimbatore, latitude: 11.0168, longitude: 76.9558, elevation: 411.0, timezone: Asia/Kolkata }
+  - { id: madurai, name: Madurai, latitude: 9.9252, longitude: 78.1198, elevation: 101.0, timezone: Asia/Kolkata }
+  - { id: bengaluru, name: Bengaluru, latitude: 12.9716, longitude: 77.5946, elevation: 920.0, timezone: Asia/Kolkata }
+  - { id: kochi, name: Kochi, latitude: 9.9312, longitude: 76.2673, elevation: 5.0, timezone: Asia/Kolkata }
+  - { id: thiruvananthapuram, name: Thiruvananthapuram, latitude: 8.5241, longitude: 76.9366, elevation: 16.0, timezone: Asia/Kolkata }
+  - { id: hyderabad, name: Hyderabad, latitude: 17.3850, longitude: 78.4867, elevation: 542.0, timezone: Asia/Kolkata }
+  - { id: mumbai, name: Mumbai, latitude: 19.0760, longitude: 72.8777, elevation: 14.0, timezone: Asia/Kolkata }
+  - { id: pune, name: Pune, latitude: 18.5204, longitude: 73.8567, elevation: 560.0, timezone: Asia/Kolkata }
+  - { id: nagpur, name: Nagpur, latitude: 21.1458, longitude: 79.0882, elevation: 310.0, timezone: Asia/Kolkata }
+  - { id: delhi, name: Delhi, latitude: 28.7041, longitude: 77.1025, elevation: 216.0, timezone: Asia/Kolkata }
+  - { id: jaipur, name: Jaipur, latitude: 26.9124, longitude: 75.7873, elevation: 431.0, timezone: Asia/Kolkata }
+  - { id: lucknow, name: Lucknow, latitude: 26.8467, longitude: 80.9462, elevation: 123.0, timezone: Asia/Kolkata }
+  - { id: kanpur, name: Kanpur, latitude: 26.4499, longitude: 80.3319, elevation: 126.0, timezone: Asia/Kolkata }
+  - { id: kolkata, name: Kolkata, latitude: 22.5726, longitude: 88.3639, elevation: 9.0, timezone: Asia/Kolkata }
+  - { id: patna, name: Patna, latitude: 25.5941, longitude: 85.1376, elevation: 53.0, timezone: Asia/Kolkata }
+  - { id: ranchi, name: Ranchi, latitude: 23.3441, longitude: 85.3096, elevation: 651.0, timezone: Asia/Kolkata }
+  - { id: guwahati, name: Guwahati, latitude: 26.1445, longitude: 91.7362, elevation: 55.0, timezone: Asia/Kolkata }
+  - { id: ahmedabad, name: Ahmedabad, latitude: 23.0225, longitude: 72.5714, elevation: 53.0, timezone: Asia/Kolkata }
+  - { id: indore, name: Indore, latitude: 22.7196, longitude: 75.8577, elevation: 553.0, timezone: Asia/Kolkata }
+  - { id: bhopal, name: Bhopal, latitude: 23.2599, longitude: 77.4126, elevation: 527.0, timezone: Asia/Kolkata }
+historical:
+  start_date: "2024-01-01"
+  end_date: "yesterday"
+provider:
+  name: open_meteo
+  timeout_seconds: 60
+  max_retries: 3
+  backoff_base_seconds: 2.0
+splits: { train: 0.70, validation: 0.15, test: 0.15 }
+validation:
+  ranges:
+    relative_humidity_2m: [0, 100]
+    precipitation: [0, 600]
+    rain: [0, 600]
+    showers: [0, 600]
+    snowfall: [0, 300]
+    precipitation_probability: [0, 100]
+    wind_speed_10m: [0, 150]
+    wind_gusts_10m: [0, 200]
+    wind_direction_10m: [0, 360]
+    pressure_msl: [870, 1085]
+    surface_pressure: [400, 1100]
+    cloud_cover: [0, 100]
+    visibility: [0, 100000]
+    temperature_2m: [-90, 60]
+    dew_point_2m: [-100, 40]
+    apparent_temperature: [-100, 70]
+  max_missing_fraction: 0.50
+  max_gap_hours: 24
+rain:
+  occurrence_threshold_mm: 0.2
+  intensity_mm: { light: 2.5, moderate: 7.5, heavy: 64.5, very_heavy: 115.6 }
+risk:
+  heat_feels_like_c: { elevated: 35, high: 40, extreme: 45 }
+  heavy_rain_24h_mm: { low: 2.5, medium: 15, high: 60, extreme: 120 }
+  wind_gust_kmh: { low: 30, medium: 50, high: 75 }
+quality_gate:
+  must_beat_persistence: false
+  min_skill_vs_persistence: 0.0
+  max_mase: 5.0
+  min_rain_pr_auc: 0.05
+  min_condition_accuracy: 0.15
+  max_latency_ms: 5000.0
+  require_manual_approval: false
+drift: { psi_threshold: 0.25, ks_alpha: 0.05, confirmation_events: 2 }
+alerts: { cooldown_minutes: 30 }
+deep: { sequence_length: 24, epochs: 3, batch_size: 64, patience: 2 }
+tuning: { n_trials: 5, cv_splits: 2 }
