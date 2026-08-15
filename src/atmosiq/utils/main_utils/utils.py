@@ -21,7 +21,7 @@ def ensure_dir(path):
 
 def read_yaml_file(file_path):
     try:
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             return yaml.safe_load(f)
     except Exception as e:
         raise AtmosIQException(e, sys)
@@ -34,7 +34,7 @@ def write_yaml_file(file_path, content):
 
 
 def read_json_file(file_path):
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         return json.load(f)
 
 
@@ -76,7 +76,7 @@ def load_object(file_path, trusted_hashes=None):
         digest = hashlib.sha256(blob).hexdigest()
         sidecar = file_path + ".sha256"
         if os.path.exists(sidecar):
-            with open(sidecar, "r") as f:
+            with open(sidecar) as f:
                 expected = f.read().strip()
             if expected != digest:
                 raise ValueError(f"Artifact integrity check failed for {file_path}")

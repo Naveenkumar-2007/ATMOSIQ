@@ -6,8 +6,7 @@ import pandas as pd
 from sklearn.model_selection import TimeSeriesSplit
 
 from atmosiq.components.model_trainer import feature_columns_for
-from atmosiq.entity.artifact_entity import DatasetCreationArtifact, HyperparameterTunerArtifact
-from atmosiq.entity.config_entity import HyperparameterTunerConfig
+from atmosiq.entity.artifact_entity import HyperparameterTunerArtifact
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging
 from atmosiq.utils.main_utils.utils import read_parquet, write_json_file

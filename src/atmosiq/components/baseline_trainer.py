@@ -4,8 +4,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-from atmosiq.entity.artifact_entity import BaselineTrainerArtifact, DatasetCreationArtifact
-from atmosiq.entity.config_entity import BaselineTrainerConfig
+from atmosiq.entity.artifact_entity import BaselineTrainerArtifact
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging
 from atmosiq.utils.main_utils.utils import read_parquet, save_parquet, write_json_file

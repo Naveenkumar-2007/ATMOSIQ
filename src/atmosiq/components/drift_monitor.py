@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 from scipy.stats import ks_2samp
 
 from atmosiq.common.timeutils import now_utc

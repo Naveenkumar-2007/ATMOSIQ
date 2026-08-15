@@ -23,7 +23,8 @@ def r2(y, p):
 
 
 def mase(y, p, seasonal=24):
-    y = _a(y); p = _p(p)
+    y = _a(y)
+    p = _p(p)
     naive = np.mean(np.abs(y[seasonal:] - y[:-seasonal])) if len(y) > seasonal else np.mean(np.abs(np.diff(y)))
     return float(np.mean(np.abs(y - p)) / naive) if naive > 0 else float("inf")
 

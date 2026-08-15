@@ -3,8 +3,9 @@ import uuid
 
 from atmosiq.db.models import Deployment, ModelVersion
 from atmosiq.db.repositories import ModelRegistryRepository
-from atmosiq.entity.artifact_entity import ModelEvaluationArtifact, ModelPusherArtifact, ModelTrainerArtifact
-from atmosiq.entity.config_entity import ModelPusherConfig
+from atmosiq.entity.artifact_entity import (
+    ModelPusherArtifact,
+)
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging
 from atmosiq.utils.main_utils.utils import read_json_file
@@ -55,12 +56,12 @@ class ModelPusher:
                     if not primary_version_id:
                         primary_version_id = version_id
                     stage = "Champion" if not require_approval or self.approved_by else "Candidate"
-                    
+
                     if stage == "Champion":
                         prev = self.repo.champion(chosen.task, chosen.horizon_hours)
                         if prev is not None:
                             self.repo.set_stage(prev.id, "Retired")
-                    
+
                     self.repo.add_version(ModelVersion(
                         id=version_id, model_name=chosen.model_name, task=chosen.task, horizon_hours=chosen.horizon_hours,
                         stage=stage, training_run_id=chosen.training_run_id, artifact_path=chosen.trained_model_file_path, metrics=chosen.validation_metrics,

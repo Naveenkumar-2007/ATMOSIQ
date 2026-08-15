@@ -4,9 +4,13 @@ import uuid
 
 from atmosiq.common.timeutils import now_utc, resolve_date
 from atmosiq.db.models import IngestionRun
-from atmosiq.db.repositories import ForecastRepository, LocationRepository, ObservationRepository, RunRepository
+from atmosiq.db.repositories import (
+    ForecastRepository,
+    LocationRepository,
+    ObservationRepository,
+    RunRepository,
+)
 from atmosiq.entity.artifact_entity import DataIngestionArtifact
-from atmosiq.entity.config_entity import DataIngestionConfig
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging
 from atmosiq.utils.main_utils.utils import save_parquet, write_json_file
@@ -56,7 +60,7 @@ class DataIngestion:
                 save_parquet(forecast.hourly, os.path.join(self.config.forecast_dir, f"{location['id']}_forecast.parquet"))
                 write_json_file(os.path.join(self.config.forecast_dir, f"{location['id']}_forecast_raw.json"), forecast.raw)
                 fc_count = ForecastRepository(self.session).store_forecast_run(location["id"], self.provider.name, forecast.issue_time, forecast.meta.request_id, forecast.hourly)
-            except Exception as e:
+            except Exception:
                 pass
 
         if hourly_df is not None and not hourly_df.empty:
@@ -77,7 +81,7 @@ class DataIngestion:
                 obs, fc = self._ingest_location(location)
                 total_obs += obs
                 total_fc += fc
-            
+
             if self.session is not None:
                 first_loc = self.config.app.locations[0]["id"] if self.config.app.locations else "global"
                 RunRepository(self.session).add_ingestion_run(IngestionRun(

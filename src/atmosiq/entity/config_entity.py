@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from atmosiq.constant import training_pipeline as tp
 from atmosiq.utils.main_utils.utils import read_yaml_file
@@ -8,7 +8,7 @@ from atmosiq.utils.main_utils.utils import read_yaml_file
 
 @dataclass
 class TrainingPipelineConfig:
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).strftime("%m_%d_%Y_%H_%M_%S"))
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).strftime("%m_%d_%Y_%H_%M_%S"))
     pipeline_name: str = tp.PIPELINE_NAME
     artifact_name: str = tp.ARTIFACT_DIR
     artifact_dir: str = ""

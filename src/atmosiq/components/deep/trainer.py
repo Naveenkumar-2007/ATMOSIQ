@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 
 import numpy as np
 import torch
@@ -8,8 +7,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from atmosiq.components.deep.models import build_model
 from atmosiq.components.model_trainer import feature_columns_for
-from atmosiq.entity.artifact_entity import DatasetCreationArtifact, ModelTrainerArtifact
-from atmosiq.entity.config_entity import DeepTrainerConfig
+from atmosiq.entity.artifact_entity import ModelTrainerArtifact
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging
 from atmosiq.utils.main_utils.utils import read_parquet, seed_everything

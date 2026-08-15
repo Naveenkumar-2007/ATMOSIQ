@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import UTC, timedelta
 
 from atmosiq.common.timeutils import now_utc
 from atmosiq.db.models import Alert
@@ -24,8 +24,7 @@ class AlertManager:
             return False
         last = latest.created_at
         if last.tzinfo is None:
-            from datetime import timezone
-            last = last.replace(tzinfo=timezone.utc)
+            last = last.replace(tzinfo=UTC)
         return (now_utc() - last) < self.cooldown
 
     def raise_alert(self, alert_type, severity, scope, message, recommendation=None):

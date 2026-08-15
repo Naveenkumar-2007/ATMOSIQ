@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -11,18 +11,25 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import func, text
 
 from atmosiq import __version__
+from atmosiq import report as report_mod
 from atmosiq.api import schemas
 from atmosiq.db.models import (
-    Alert, DriftEvent, ForecastVerification, IngestionRun, Location,
-    ModelVersion, PerformanceEvent, Prediction, TrainingRun, WeatherObservation,
+    Alert,
+    DriftEvent,
+    ForecastVerification,
+    IngestionRun,
+    Location,
+    ModelVersion,
+    PerformanceEvent,
+    Prediction,
+    TrainingRun,
+    WeatherObservation,
 )
 from atmosiq.db.session import get_session
 from atmosiq.entity.config_entity import AppConfig
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging
 from atmosiq.observability.prometheus import atmosiq_request_latency_seconds, atmosiq_requests_total
-from atmosiq.providers import get_provider
-from atmosiq import report as report_mod
 
 logger = logging.getLogger("atmosiq.api")
 
@@ -76,8 +83,8 @@ def health_ready(request: Request):
 @app.get("/api/v1/locations", response_model=list[schemas.LocationOut])
 def list_locations(request: Request):
     session = request.app.state.db_session
-    return [schemas.LocationOut(id=l.id, name=l.name, latitude=l.latitude, longitude=l.longitude, timezone=l.timezone)
-            for l in session.query(Location).all()]
+    return [schemas.LocationOut(id=loc.id, name=loc.name, latitude=loc.latitude, longitude=loc.longitude, timezone=loc.timezone)
+            for loc in session.query(Location).all()]
 
 
 @app.get("/api/v1/models/leaderboard")
@@ -166,9 +173,9 @@ def combined_weather(location_id, request: Request):
     if df.empty:
         raise HTTPException(status_code=404, detail="No observations found")
     latest = df.iloc[-1]
-    
+
     hourly_24 = df.tail(24)
-    
+
     df_daily = df.copy()
     df_daily["date"] = df_daily["time"].dt.date.astype(str)
     daily = df_daily.groupby("date").agg(
@@ -328,10 +335,10 @@ def historical_weather(location_id: str, request: Request, days: int = 7, range_
     df = obs_repo.observations_df(location_id, "open_meteo")
     if df.empty:
         raise HTTPException(status_code=404, detail="No historical observations found")
-    
+
     df = df.copy()
     df_range = df.tail(effective_days * 24)
-    
+
     observations = []
     for _, r in df_range.iterrows():
         t_str = str(r["time"])
@@ -476,7 +483,7 @@ def list_training_runs(request: Request, limit: int = 50, task: str = None):
 
 @app.get("/api/v1/mlops/data-quality")
 def data_quality_summary(request: Request):
-    from atmosiq.db.models import WeatherObservation, Location
+    from atmosiq.db.models import Location, WeatherObservation
     session = request.app.state.db_session
     obs_count = session.query(WeatherObservation).count()
     loc_count = session.query(Location).count()
@@ -556,18 +563,18 @@ def forecast_temperature(location_id: str, request: Request, horizon: int = 24):
     if not rows:
         # No predictions available - return empty response with model info
         champ_info = {
-            "model": champ.model_name if champ else "No Champion Model", 
-            "version": champ.id if champ else None, 
+            "model": champ.model_name if champ else "No Champion Model",
+            "version": champ.id if champ else None,
             "stage": champ.stage if champ else "No Champion",
-            "metrics": champ.metrics if champ else {}, 
+            "metrics": champ.metrics if champ else {},
             "created_at": str(champ.created_at) if champ and champ.created_at else None
         }
         return {
-            "location": location_id, 
+            "location": location_id,
             "target": "temperature_2m",
             "champion": champ_info,
-            "predictions": [], 
-            "verification_summary": summary,
+            "predictions": [],
+            "verification_summary": {"mae": 0.0, "rmse": 0.0, "count": 0},
             "message": "No ML predictions available. Run the prediction pipeline to generate forecasts."
         }
 
@@ -587,8 +594,8 @@ def forecast_temperature(location_id: str, request: Request, horizon: int = 24):
     return {
         "location": location_id, "target": "temperature_2m",
         "champion": {"model": champ.model_name if champ else "LightGBM Champion", "version": champ.id if champ else "mv_champion_temp", "stage": champ.stage if champ else "Champion",
-                      "metrics": champ.metrics if champ else {"mae": 1.38, "rmse": 1.82, "r2": 0.88}, "created_at": str(champ.created_at if champ else datetime.now(timezone.utc))} if champ else {
-                          "model": "LightGBM Champion", "version": "mv_champion_temp", "stage": "Champion", "metrics": {"mae": 1.38, "rmse": 1.82, "r2": 0.88}, "created_at": str(datetime.now(timezone.utc))
+                      "metrics": champ.metrics if champ else {"mae": 1.38, "rmse": 1.82, "r2": 0.88}, "created_at": str(champ.created_at if champ else datetime.now(UTC))} if champ else {
+                          "model": "LightGBM Champion", "version": "mv_champion_temp", "stage": "Champion", "metrics": {"mae": 1.38, "rmse": 1.82, "r2": 0.88}, "created_at": str(datetime.now(UTC))
                       },
         "predictions": rows, "verification_summary": summary,
     }
@@ -826,7 +833,7 @@ def promote_model(model_id: str, request: Request, stage: str = "Champion"):
 def model_monitoring(request: Request):
     """Production model monitoring metrics."""
     session = request.app.state.db_session
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     pred_24h = session.query(Prediction).filter(Prediction.created_at >= now - timedelta(hours=24)).count()
     pred_7d = session.query(Prediction).filter(Prediction.created_at >= now - timedelta(days=7)).count()
     active = session.query(ModelVersion).filter(ModelVersion.stage.in_(["Champion", "Challenger"])).count()

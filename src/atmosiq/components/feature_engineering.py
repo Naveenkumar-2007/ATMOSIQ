@@ -5,8 +5,7 @@ import numpy as np
 import pandas as pd
 
 from atmosiq.db.models import FeatureVersion
-from atmosiq.entity.artifact_entity import DataTransformationArtifact, FeatureEngineeringArtifact
-from atmosiq.entity.config_entity import FeatureEngineeringConfig
+from atmosiq.entity.artifact_entity import FeatureEngineeringArtifact
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging
 from atmosiq.utils.leakage_guard import LeakageGuard

@@ -1,8 +1,11 @@
 import numpy as np
 from sklearn.ensemble import (
-    ExtraTreesClassifier, ExtraTreesRegressor,
-    HistGradientBoostingClassifier, HistGradientBoostingRegressor,
-    RandomForestClassifier, RandomForestRegressor,
+    ExtraTreesClassifier,
+    ExtraTreesRegressor,
+    HistGradientBoostingClassifier,
+    HistGradientBoostingRegressor,
+    RandomForestClassifier,
+    RandomForestRegressor,
 )
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
 

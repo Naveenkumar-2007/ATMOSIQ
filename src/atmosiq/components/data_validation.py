@@ -6,11 +6,15 @@ import pandas as pd
 
 from atmosiq.db.models import ValidationRun
 from atmosiq.db.repositories import RunRepository
-from atmosiq.entity.artifact_entity import DataIngestionArtifact, DataValidationArtifact
-from atmosiq.entity.config_entity import DataValidationConfig
+from atmosiq.entity.artifact_entity import DataValidationArtifact
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging
-from atmosiq.utils.main_utils.utils import read_parquet, read_yaml_file, save_parquet, write_json_file
+from atmosiq.utils.main_utils.utils import (
+    read_parquet,
+    read_yaml_file,
+    save_parquet,
+    write_json_file,
+)
 
 logger = logging.getLogger("atmosiq.components.data_validation")
 

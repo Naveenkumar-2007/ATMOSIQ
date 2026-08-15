@@ -3,9 +3,13 @@ from sqlalchemy import select
 from sqlalchemy.dialects import postgresql, sqlite
 
 from atmosiq.db.models import (
-    Alert, Deployment, DriftEvent, Forecast, ForecastRun, ForecastVerification,
-    IngestionRun, Location, ModelVersion, PerformanceEvent, Prediction,
-    TrainingRun, ValidationRun, WeatherObservation,
+    Alert,
+    DriftEvent,
+    Forecast,
+    ForecastRun,
+    Location,
+    ModelVersion,
+    WeatherObservation,
 )
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging

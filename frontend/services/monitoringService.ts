@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/api";
-import { AlertItem, DriftMetric, SystemHealthStatus } from "@/types/weather";
+import { AlertItem, DriftMetric, SystemHealthStatus, HealthStatus } from "@/types/weather";
 
 export const monitoringService = {
   async getDriftReport(): Promise<DriftMetric[]> {
@@ -30,12 +30,13 @@ export const monitoringService = {
       const live = await apiClient<any>("/health/live");
       if (ready && live) {
         const healthData = await apiClient<any>("/api/v1/system/health").catch(() => null);
+        const apiStatus: HealthStatus = ready.status === "ready" ? "healthy" : "warning";
         return {
-          api: ready.status === "ready" ? "healthy" : "degraded",
-          database: ready.status === "ready" ? "healthy" : "degraded",
-          mlService: healthData?.ml_service || "healthy",
-          dataIngestion: healthData?.data_ingestion || "healthy",
-          scheduler: healthData?.scheduler || "healthy",
+          api: apiStatus,
+          database: apiStatus,
+          mlService: (healthData?.ml_service as HealthStatus) || "healthy",
+          dataIngestion: (healthData?.data_ingestion as HealthStatus) || "healthy",
+          scheduler: (healthData?.scheduler as HealthStatus) || "healthy",
           latencyMs: healthData?.api_latency_ms || 0,
           cpuPercent: healthData?.cpu_percent || 0,
           memoryPercent: healthData?.memory_percent || 0,
@@ -49,11 +50,11 @@ export const monitoringService = {
     }
 
     return {
-      api: "degraded",
-      database: "degraded",
-      mlService: "unknown",
-      dataIngestion: "unknown",
-      scheduler: "unknown",
+      api: "down",
+      database: "down",
+      mlService: "warning",
+      dataIngestion: "warning",
+      scheduler: "warning",
       latencyMs: 0,
       cpuPercent: 0,
       memoryPercent: 0,

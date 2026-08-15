@@ -136,6 +136,8 @@ export interface AlertItem {
   location?: string;
 }
 
+export type HealthStatus = "healthy" | "warning" | "down";
+
 export interface SystemHealthStatus {
   api: "healthy" | "warning" | "down";
   database: "healthy" | "warning" | "down";

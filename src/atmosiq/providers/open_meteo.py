@@ -2,8 +2,11 @@ import pandas as pd
 
 from atmosiq.common.timeutils import floor_hour, lead_time_hours, now_utc
 from atmosiq.constant.training_pipeline import (
-    DAILY_CANONICAL, DAILY_HISTORICAL_VARIABLES, DAILY_VARIABLES,
-    HISTORICAL_HOURLY_VARIABLES, HOURLY_VARIABLES,
+    DAILY_CANONICAL,
+    DAILY_HISTORICAL_VARIABLES,
+    DAILY_VARIABLES,
+    HISTORICAL_HOURLY_VARIABLES,
+    HOURLY_VARIABLES,
 )
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging

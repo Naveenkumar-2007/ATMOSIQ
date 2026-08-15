@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from atmosiq.db.models import ForecastVerification, PerformanceEvent
+from atmosiq.db.models import PerformanceEvent
 from atmosiq.db.repositories import MonitoringRepository
 from atmosiq.logging.logger import logging
 from atmosiq.observability.prometheus import atmosiq_model_health, atmosiq_model_performance

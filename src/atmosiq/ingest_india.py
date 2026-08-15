@@ -1,8 +1,9 @@
 import time
+
 from atmosiq.common.timeutils import resolve_date
+from atmosiq.db.models import WeatherObservation
 from atmosiq.db.repositories import LocationRepository, ObservationRepository
 from atmosiq.db.session import get_session
-from atmosiq.db.models import WeatherObservation
 from atmosiq.entity.config_entity import AppConfig
 from atmosiq.logging.logger import logging
 from atmosiq.providers import get_provider
@@ -39,7 +40,7 @@ def main():
     start_date = resolve_date(app.raw["historical"]["start_date"])
     end_date = resolve_date(app.raw["historical"]["end_date"])
     results = {}
-    
+
     print(f"Starting polite sequential ingestion for {len(app.locations)} locations ({start_date} to {end_date})...")
     for loc in app.locations:
         loc_id, n = ingest_location(provider, loc, start_date, end_date)

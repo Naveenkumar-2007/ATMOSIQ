@@ -1,4 +1,4 @@
-from atmosiq.providers.base import WeatherProvider
+from atmosiq.providers.base import WeatherProvider as WeatherProvider
 from atmosiq.providers.open_meteo import OpenMeteoProvider
 
 _REGISTRY = {"open_meteo": OpenMeteoProvider}

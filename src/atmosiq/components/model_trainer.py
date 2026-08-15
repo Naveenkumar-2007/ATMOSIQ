@@ -9,8 +9,9 @@ import pandas as pd
 
 from atmosiq.components.task_registry import TASKS, is_classification
 from atmosiq.db.models import TrainingRun
-from atmosiq.entity.artifact_entity import DatasetCreationArtifact, FeatureEngineeringArtifact, HyperparameterTunerArtifact, ModelTrainerArtifact
-from atmosiq.entity.config_entity import ModelTrainerConfig
+from atmosiq.entity.artifact_entity import (
+    ModelTrainerArtifact,
+)
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging
 from atmosiq.utils.main_utils.utils import read_json_file, read_parquet
@@ -74,7 +75,7 @@ class ModelTrainer:
                         va[f] = va[f].fillna(0.0)
                     X_tr, y_tr = tr[avail].to_numpy(), tr[target_col].to_numpy()
                     X_va, y_va = va[avail].to_numpy(), va[target_col].to_numpy()
-                    
+
                     pos_count = int((y_tr == 1).sum()) if kind == "binary" else 0
                     neg_count = int((y_tr == 0).sum()) if kind == "binary" else 0
                     pos_weight = float(neg_count / max(pos_count, 1)) if pos_count > 0 else 1.0

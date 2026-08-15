@@ -13,7 +13,10 @@ from atmosiq.db.models import Location, Prediction
 from atmosiq.db.repositories import MonitoringRepository, ObservationRepository
 from atmosiq.exception.exception import AtmosIQException
 from atmosiq.logging.logger import logging
-from atmosiq.observability.prometheus import atmosiq_prediction_latency_seconds, atmosiq_prediction_total
+from atmosiq.observability.prometheus import (
+    atmosiq_prediction_latency_seconds,
+    atmosiq_prediction_total,
+)
 from atmosiq.observability.tracing import span_ctx
 from atmosiq.providers import get_provider
 from atmosiq.utils.main_utils.utils import load_object
