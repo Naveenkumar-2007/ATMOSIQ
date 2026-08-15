@@ -2,8 +2,6 @@ import os
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import pool
-
 from atmosiq.db.models import Base
 from atmosiq.db.session import database_url, get_engine
 
