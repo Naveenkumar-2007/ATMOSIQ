@@ -1,4 +1,3 @@
-```
 # Python
 __pycache__/
 *.py[cod]
@@ -43,7 +42,7 @@ Thumbs.db
 # Logs
 *.log
 
-# Coverage
+# Coverage / Testing
 .coverage
 htmlcov/
 .coverage.*
@@ -53,54 +52,27 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints
 
 # Environment variables
 .env
 .env.local
 *.env.*
 
-# Distribution / packaging
-.Python
-_build/
-buck-out/
-build/
-dist/
-develop-eggs/
-.installed.cfg
-.lib/
-.eggs/
-.venv/
-venv/
-env/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*,cover
-*.log
-.gitattributes
+# ML / Heavy Artifacts
+artifacts/
+mlruns/
+mlflow.db
+catboost_info/
+*.parquet
+*.pkl
+*.sqlite
+*.db
 
-# Testing
-.pytest_cache/
-.hypothesis/
-
-# MyPy
-.mypy_cache/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Target directory for compiled code (if any Rust/C++ components)
-target/
-
-# Gradle
-.gradle/
-
-# Node modules if any frontend components
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
 node_modules/
-```
+.next/

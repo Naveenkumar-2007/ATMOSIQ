@@ -57,11 +57,16 @@ class PredictionService:
         return None
 
     def _feature_vector(self, location_id):
+        location_id = location_id or "kavali"
         if location_id in self._feature_cache:
             return self._feature_cache[location_id]
         loc = self.session.query(Location).filter_by(id=location_id).first()
         if loc is None:
+            loc = self.session.query(Location).first()
+        if loc is None:
             raise AtmosIQException(f"unknown location {location_id}")
+        location_id = loc.id
+
         obs = ObservationRepository(self.session).observations_df(location_id, "open_meteo")
         if obs.empty:
             raise AtmosIQException(f"no observations for {location_id}; run ingestion first")
@@ -162,6 +167,21 @@ class PredictionService:
             except AtmosIQException:
                 out["tasks"][task] = None
         t = out["tasks"]
+
+        # Two-stage hurdle model: Calibrate precipitation amount using rain_occurrence probability
+        rain_occ = t.get("rain_occurrence")
+        precip_amt = t.get("precipitation_amount")
+        if rain_occ and precip_amt:
+            prob = rain_occ.get("rain_probability", 0.0)
+            threshold = rain_occ.get("optimal_threshold", 0.45)
+            if prob < threshold:
+                precip_amt["prediction"] = 0.0
+                precip_amt["lower"] = 0.0
+                precip_amt["upper"] = round(prob * 0.5, 2)
+            else:
+                raw_amt = precip_amt.get("prediction", 0.0)
+                precip_amt["prediction"] = round(max(0.1, raw_amt * (prob ** 0.5)), 2)
+
         rain_mm = (t.get("precipitation_amount") or {}).get("prediction")
         intensity = self.app_config.raw["rain"]["intensity_mm"] if self.app_config else {"light": 2.5, "moderate": 7.5, "heavy": 64.5, "very_heavy": 115.6}
         if rain_mm is not None:

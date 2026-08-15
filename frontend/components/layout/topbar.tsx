@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   MapPin,
   Clock,
@@ -10,15 +10,25 @@ import {
   Sun,
   Moon,
   ChevronDown,
+  Globe,
+  Plus
 } from "lucide-react";
 import { useLocation } from "@/lib/location-context";
 import { useTheme } from "@/lib/theme-context";
+import { apiClient } from "@/lib/api";
 
 export function Topbar() {
-  const { locationId, setLocationId, locations, triggerRefresh } = useLocation();
+  const { locationId, setLocationId, locations, triggerRefresh, addAndSelectLocation } = useLocation();
   const { theme, toggleTheme } = useTheme();
   const [timeStr, setTimeStr] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const update = () => {
@@ -31,9 +41,69 @@ export function Topbar() {
       );
     };
     update();
-    const interval = setInterval(update, 30000); // Update every 30s, not every 1s
+    const interval = setInterval(update, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Handle outside click to close search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Live Geocoding Search
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await apiClient<any[]>(`/api/v1/locations/search?q=${encodeURIComponent(searchQuery)}`);
+        setSearchResults(results || []);
+        setShowResults(true);
+      } catch (e) {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSelectLocation = async (item: any) => {
+    try {
+      setShowResults(false);
+      setSearchQuery("");
+      const resp = await apiClient<any>("/api/v1/locations/onboard", {
+        method: "POST",
+        body: JSON.stringify({
+          name: item.name,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          elevation: item.elevation || 0.0,
+          timezone: item.timezone || "Asia/Kolkata",
+          country: item.country,
+        }),
+      });
+      const locData = resp?.location || {
+        id: item.name.toLowerCase().replace(/[^a-z0-9]+/g, "_"),
+        name: item.name,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        timezone: item.timezone || "Asia/Kolkata",
+      };
+      addAndSelectLocation(locData);
+    } catch (e) {
+      console.error("Failed to onboard station:", e);
+    }
+  };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -45,7 +115,7 @@ export function Topbar() {
 
   return (
     <header
-      className="h-14 backdrop-blur-md border-b px-4 sm:px-6 flex items-center justify-between z-20 sticky top-0"
+      className="h-14 backdrop-blur-md border-b px-4 sm:px-6 flex items-center justify-between z-30 sticky top-0"
       style={{ background: "var(--header-bg)", borderColor: "var(--header-border)" }}
     >
       {/* Left: Location & Time */}
@@ -80,37 +150,72 @@ export function Topbar() {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
-        {/* Search */}
-        <div className="relative hidden lg:block">
-          <Search size={14} className="absolute left-3 top-2.5" style={{ color: "var(--muted-foreground)" }} />
+        {/* Interactive Global Station Search */}
+        <div className="relative hidden md:block" ref={searchRef}>
+          <Search size={14} className="absolute left-3 top-2.5 z-10" style={{ color: "var(--muted-foreground)" }} />
           <input
             type="text"
-            placeholder="Search..."
-            className="h-9 w-48 rounded-lg border pl-9 pr-3 text-xs placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
+            placeholder="Search any global city/station..."
+            className="h-9 w-60 rounded-lg border pl-9 pr-3 text-xs placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium transition-all"
             style={{
               background: "var(--card)",
               borderColor: "var(--border)",
               color: "var(--foreground)",
             }}
           />
+
+          {/* Search Dropdown Results */}
+          {showResults && searchResults.length > 0 && (
+            <div
+              className="absolute right-0 top-11 w-80 rounded-2xl border shadow-2xl backdrop-blur-xl p-2 space-y-1 z-50 max-h-80 overflow-y-auto"
+              style={{ background: "var(--card)", borderColor: "var(--card-border)" }}
+            >
+              <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-500 flex items-center justify-between border-b" style={{ borderColor: "var(--border)" }}>
+                <span>Global Stations Found ({searchResults.length})</span>
+                <Globe size={12} />
+              </div>
+              {searchResults.map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSelectLocation(item)}
+                  className="w-full text-left p-2.5 rounded-xl hover:bg-blue-500/10 transition-colors flex items-center justify-between group cursor-pointer"
+                >
+                  <div>
+                    <span className="text-xs font-bold block" style={{ color: "var(--foreground)" }}>
+                      {item.name}
+                    </span>
+                    <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                      {item.admin1 ? `${item.admin1}, ` : ""}{item.country} · {item.latitude.toFixed(2)}°N, {item.longitude.toFixed(2)}°E
+                    </span>
+                  </div>
+                  <div className="h-6 w-6 rounded-lg border flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors" style={{ borderColor: "var(--border)" }}>
+                    <Plus size={13} />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="h-9 w-9 rounded-lg border flex items-center justify-center transition-colors"
+          className="h-9 w-9 rounded-lg border flex items-center justify-center transition-colors cursor-pointer"
           style={{ borderColor: "var(--border)", background: "var(--card)", color: "var(--muted-foreground)" }}
           title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
           aria-label="Toggle theme"
         >
-          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+          {theme === "dark" ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-slate-700" />}
         </button>
 
         {/* Refresh */}
         <button
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="h-9 px-3 rounded-lg border flex items-center gap-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+          className="h-9 px-3 rounded-lg border flex items-center gap-1.5 text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"
           style={{ borderColor: "var(--border)", background: "var(--card)", color: "var(--muted-foreground)" }}
           title="Refresh data"
           aria-label="Refresh data"
@@ -119,22 +224,7 @@ export function Topbar() {
           <span className="hidden sm:inline">Sync</span>
         </button>
 
-        {/* Notification Bell */}
-        <div className="relative">
-          <button
-            className="h-9 w-9 rounded-lg border flex items-center justify-center transition-colors"
-            style={{ borderColor: "var(--border)", background: "var(--card)", color: "var(--muted-foreground)" }}
-            aria-label="Notifications"
-          >
-            <Bell size={15} />
-          </button>
-          <span
-            className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full ring-2"
-            style={{ background: "var(--primary)" }}
-          />
-        </div>
-
-        {/* User */}
+        {/* User Badge */}
         <div className="flex items-center gap-2 pl-2 border-l" style={{ borderColor: "var(--border)" }}>
           <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
             AI

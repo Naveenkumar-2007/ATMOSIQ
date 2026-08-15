@@ -89,16 +89,18 @@ def promote(approved_by):
 @cli.command()
 @click.option("--task", required=True)
 @click.option("--horizon", type=int, required=True)
-def predict(task, horizon):
+@click.option("--location", default="kavali", help="Location ID (e.g. kavali, hyderabad, bengaluru)")
+def predict(task, horizon, location):
     from atmosiq.components.prediction_service import PredictionService
     from atmosiq.db.session import get_session
 
     def run():
         session = get_session()
         service = PredictionService(session)
-        result = service.predict(task, horizon, {}, None)
+        result = service.predict(task, horizon, {}, location_id=location)
         click.echo(f"Prediction: {result}")
     _run(run)
+
 
 
 @cli.command()

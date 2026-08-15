@@ -100,8 +100,9 @@ class OpenMeteoProvider(WeatherProvider):
         import httpx
         meta = ProviderMeta(provider=self.name, fetched_at=now_utc())
         params = self._params(location, HOURLY_VARIABLES, DAILY_VARIABLES)
-        params.update({"forecast_days": 4, "forecast_hours": 96})
+        params.update({"forecast_days": 8, "forecast_hours": 192})
         with httpx.Client() as client:
+
             raw = self._request_json(client, FORECAST_URL, params, meta)
         hourly = self._normalize_hourly(raw, HOURLY_VARIABLES, meta)
         daily = self._normalize_daily_forecast(raw)

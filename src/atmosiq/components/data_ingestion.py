@@ -77,17 +77,33 @@ class DataIngestion:
             run_id = f"ing_{uuid.uuid4().hex[:12]}"
             total_obs = 0
             total_fc = 0
-            for location in self.config.app.locations:
+            locations_to_ingest = list(self.config.app.locations)
+            if self.session is not None:
+                from atmosiq.db.models import Location
+                db_locs = self.session.query(Location).all()
+                existing_ids = {l["id"] for l in locations_to_ingest}
+                for dbl in db_locs:
+                    if dbl.id not in existing_ids:
+                        locations_to_ingest.append({
+                            "id": dbl.id,
+                            "name": dbl.name,
+                            "latitude": float(dbl.latitude),
+                            "longitude": float(dbl.longitude),
+                            "elevation": float(getattr(dbl, "elevation", 0.0) or 0.0),
+                            "timezone": dbl.timezone or "Asia/Kolkata",
+                        })
+
+            for location in locations_to_ingest:
                 obs, fc = self._ingest_location(location)
                 total_obs += obs
                 total_fc += fc
 
             if self.session is not None:
-                first_loc = self.config.app.locations[0]["id"] if self.config.app.locations else "global"
+                first_loc = locations_to_ingest[0]["id"] if locations_to_ingest else "global"
                 RunRepository(self.session).add_ingestion_run(IngestionRun(
                     id=run_id, location_id=first_loc, provider=self.provider.name,
                     started_at=now_utc(), finished_at=now_utc(), status="success",
-                    observation_count=total_obs, forecast_count=total_fc, meta={"locations": len(self.config.app.locations)},
+                    observation_count=total_obs, forecast_count=total_fc, meta={"locations": len(locations_to_ingest)},
                 ))
             return DataIngestionArtifact(
                 raw_dir=self.config.raw_dir, bronze_dir=self.config.bronze_dir, forecast_dir=self.config.forecast_dir,

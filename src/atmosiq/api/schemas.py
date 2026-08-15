@@ -12,6 +12,16 @@ class LocationOut(BaseModel):
     latitude: float
     longitude: float
     timezone: str
+    elevation: float | None = 0.0
+
+
+class LocationOnboardRequest(BaseModel):
+    name: str
+    latitude: float
+    longitude: float
+    elevation: float | None = 0.0
+    timezone: str | None = "Asia/Kolkata"
+    country: str | None = None
 
 
 class CurrentWeatherOut(BaseModel):
