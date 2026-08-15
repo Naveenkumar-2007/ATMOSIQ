@@ -99,9 +99,9 @@ def list_locations(request: Request):
 @app.get("/api/v1/locations/search")
 def search_locations(q: str = Query(..., min_length=2)):
     """Search any city or region globally using Open-Meteo Geocoding."""
+    import json
     import urllib.parse
     import urllib.request
-    import json
     try:
         encoded_q = urllib.parse.quote(q)
         url = f"https://geocoding-api.open-meteo.com/v1/search?name={encoded_q}&count=10&language=en&format=json"
@@ -154,12 +154,12 @@ def onboard_location(payload: schemas.LocationOnboardRequest, request: Request):
         new_loc = existing
 
     # 1. Pre-warm live forecast bundle
-    bundle = _get_live_forecast_bundle(slug, session)
+    _get_live_forecast_bundle(slug, session)
 
     # 2. Ingest observations from Open-Meteo into WeatherObservation table for historical charts & ML features
     try:
-        from atmosiq.providers.open_meteo import OpenMeteoProvider
         from atmosiq.db.repositories import ObservationRepository
+        from atmosiq.providers.open_meteo import OpenMeteoProvider
         provider = OpenMeteoProvider({})
         hist_df = provider.fetch_historical({
             "id": slug,

@@ -32,7 +32,7 @@ class ModelPusher:
             mlflow.set_experiment("atmosiq")
             with mlflow.start_run(run_name=artifact.model_name):
                 mlflow.log_params({"task": artifact.task, "horizon": artifact.horizon_hours})
-                mlflow.log_metrics({k: v for k, v in artifact.validation_metrics.items() if isinstance(v, (int, float))})
+                mlflow.log_metrics({k: v for k, v in artifact.validation_metrics.items() if isinstance(v, int | float)})
                 mlflow.log_artifact(artifact.trained_model_file_path)
         except Exception as e:
             logger.warning(f"mlflow logging skipped: {e}")

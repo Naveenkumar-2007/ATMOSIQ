@@ -81,7 +81,7 @@ class DataIngestion:
             if self.session is not None:
                 from atmosiq.db.models import Location
                 db_locs = self.session.query(Location).all()
-                existing_ids = {l["id"] for l in locations_to_ingest}
+                existing_ids = {loc["id"] for loc in locations_to_ingest}
                 for dbl in db_locs:
                     if dbl.id not in existing_ids:
                         locations_to_ingest.append({
