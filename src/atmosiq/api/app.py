@@ -554,24 +554,22 @@ def forecast_temperature(location_id: str, request: Request, horizon: int = 24):
             "model": payload.get("model", ""), "model_version": p.model_version_id,
         })
     if not rows:
-        from atmosiq.db.repositories import ObservationRepository
-        obs_repo = ObservationRepository(session)
-        df = obs_repo.observations_df(location_id, "open_meteo")
-        base_t = float(df.iloc[-1]["temperature_2m"]) if not df.empty and not pd.isna(df.iloc[-1].get("temperature_2m")) else 26.0
-        now_dt = datetime.now(timezone.utc)
-        for h in [1, 2, 3, 4, 6, 8, 12, 18, 24, 30, 36, 48]:
-            p_val = round(base_t + np.sin(h / 3.8) * 3.2, 1)
-            rows.append({
-                "id": f"pred_temp_{h}h",
-                "issue_time": str(now_dt),
-                "valid_time": str(now_dt + timedelta(hours=h)),
-                "horizon_hours": h,
-                "prediction": p_val,
-                "lower": round(p_val - 1.35, 1),
-                "upper": round(p_val + 1.35, 1),
-                "model": champ.model_name if champ else "LightGBM Champion",
-                "model_version": champ.id if champ else "mv_champion",
-            })
+        # No predictions available - return empty response with model info
+        champ_info = {
+            "model": champ.model_name if champ else "No Champion Model", 
+            "version": champ.id if champ else None, 
+            "stage": champ.stage if champ else "No Champion",
+            "metrics": champ.metrics if champ else {}, 
+            "created_at": str(champ.created_at) if champ and champ.created_at else None
+        }
+        return {
+            "location": location_id, 
+            "target": "temperature_2m",
+            "champion": champ_info,
+            "predictions": [], 
+            "verification_summary": summary,
+            "message": "No ML predictions available. Run the prediction pipeline to generate forecasts."
+        }
 
     verifications = (
         session.query(ForecastVerification)
@@ -613,48 +611,48 @@ def forecast_rainfall(location_id: str, request: Request):
               for p in rain_preds if p.task == "precipitation_amount"]
 
     if not occurrence:
-        now_dt = datetime.now(timezone.utc)
-        for h in [1, 2, 3, 4, 6, 8, 12, 18, 24, 36, 48]:
-            prob = max(0.05, min(0.95, round(0.25 + 0.18 * np.cos(h / 4.2), 2)))
-            occurrence.append({
-                "id": f"pred_rain_occ_{h}h",
-                "issue_time": str(now_dt),
-                "valid_time": str(now_dt + timedelta(hours=h)),
-                "horizon_hours": h,
-                "task": "rain_occurrence",
-                "rain_probability": prob,
-                "prediction": prob,
-                "model": "CatBoost Champion",
-            })
-    if not amount:
-        now_dt = datetime.now(timezone.utc)
-        for h in [1, 2, 3, 4, 6, 8, 12, 18, 24, 36, 48]:
-            amt = max(0.0, round(0.45 * np.sin(h / 3.5), 2))
-            amount.append({
-                "id": f"pred_rain_amt_{h}h",
-                "issue_time": str(now_dt),
-                "valid_time": str(now_dt + timedelta(hours=h)),
-                "horizon_hours": h,
-                "task": "precipitation_amount",
-                "prediction": amt,
-                "lower": max(0.0, round(amt - 0.2, 2)),
-                "upper": round(amt + 0.8, 2),
-                "model": "LightGBM Champion",
-            })
+        # No rain occurrence predictions available
+        occ_champ = session.query(ModelVersion).filter_by(task="rain_occurrence", stage="Champion").order_by(ModelVersion.created_at.desc()).first()
+        occ_champ_info = {
+            "model": occ_champ.model_name if occ_champ else "No Champion Model",
+            "version": occ_champ.id if occ_champ else None,
+            "metrics": occ_champ.metrics if occ_champ else {},
+            "created_at": str(occ_champ.created_at) if occ_champ and occ_champ.created_at else None
+        }
+    else:
+        occ_champ = session.query(ModelVersion).filter_by(task="rain_occurrence", stage="Champion").order_by(ModelVersion.created_at.desc()).first()
+        occ_champ_info = {
+            "model": occ_champ.model_name if occ_champ else "CatBoost Rain Classifier",
+            "version": occ_champ.id if occ_champ else None,
+            "metrics": occ_champ.metrics if occ_champ else {},
+            "created_at": str(occ_champ.created_at) if occ_champ and occ_champ.created_at else None
+        }
 
-    occ_champ = session.query(ModelVersion).filter_by(task="rain_occurrence", stage="Champion").order_by(ModelVersion.created_at.desc()).first()
-    amt_champ = session.query(ModelVersion).filter_by(task="precipitation_amount", stage="Champion").order_by(ModelVersion.created_at.desc()).first()
+    if not amount:
+        # No precipitation amount predictions available
+        amt_champ = session.query(ModelVersion).filter_by(task="precipitation_amount", stage="Champion").order_by(ModelVersion.created_at.desc()).first()
+        amt_champ_info = {
+            "model": amt_champ.model_name if amt_champ else "No Champion Model",
+            "version": amt_champ.id if amt_champ else None,
+            "metrics": amt_champ.metrics if amt_champ else {},
+            "created_at": str(amt_champ.created_at) if amt_champ and amt_champ.created_at else None
+        }
+    else:
+        amt_champ = session.query(ModelVersion).filter_by(task="precipitation_amount", stage="Champion").order_by(ModelVersion.created_at.desc()).first()
+        amt_champ_info = {
+            "model": amt_champ.model_name if amt_champ else "LightGBM Precip Regressor",
+            "version": amt_champ.id if amt_champ else None,
+            "metrics": amt_champ.metrics if amt_champ else {},
+            "created_at": str(amt_champ.created_at) if amt_champ and amt_champ.created_at else None
+        }
+
     return {
         "location": location_id,
-        "occurrence_champion": {"model": occ_champ.model_name, "version": occ_champ.id, "metrics": occ_champ.metrics,
-                                "created_at": str(occ_champ.created_at)} if occ_champ else {
-                                    "model": "CatBoost Rain Classifier", "version": "mv_champ_rain_occ", "metrics": {"f1": 0.824, "accuracy": 0.871, "roc_auc": 0.912}, "created_at": str(datetime.now(timezone.utc))
-                                },
-        "amount_champion": {"model": amt_champ.model_name, "version": amt_champ.id, "metrics": amt_champ.metrics,
-                            "created_at": str(amt_champ.created_at)} if amt_champ else {
-                                "model": "LightGBM Precip Regressor", "version": "mv_champ_precip_amt", "metrics": {"mae": 0.28, "rmse": 0.65}, "created_at": str(datetime.now(timezone.utc))
-                            },
-        "occurrence_predictions": occurrence[:50], "amount_predictions": amount[:50],
+        "occurrence_champion": occ_champ_info,
+        "amount_champion": amt_champ_info,
+        "occurrence_predictions": occurrence[:50],
+        "amount_predictions": amount[:50],
+        "message": "No ML predictions available. Run the prediction pipeline to generate forecasts." if (not occurrence and not amount) else None
     }
 
 
@@ -676,41 +674,20 @@ def forecast_wind(location_id: str, request: Request):
             "horizon_hours": p.horizon_hours, **{k: v for k, v in (p.payload or {}).items() if k != "task"},
         })
 
-    now_dt = datetime.now(timezone.utc)
-    if "wind_speed" not in by_task or not by_task["wind_speed"]:
-        by_task["wind_speed"] = [
-            {
-                "id": f"pred_ws_{h}h",
-                "issue_time": str(now_dt),
-                "valid_time": str(now_dt + timedelta(hours=h)),
-                "horizon_hours": h,
-                "prediction": round(12.5 + 2.5 * np.sin(h / 3.0), 1),
-                "model": "LightGBM WindSpeed",
-            }
-            for h in [1, 2, 3, 4, 6, 8, 12, 18, 24, 36, 48]
-        ]
-    if "wind_gusts" not in by_task or not by_task["wind_gusts"]:
-        by_task["wind_gusts"] = [
-            {
-                "id": f"pred_wg_{h}h",
-                "issue_time": str(now_dt),
-                "valid_time": str(now_dt + timedelta(hours=h)),
-                "horizon_hours": h,
-                "prediction": round(18.0 + 3.5 * np.sin(h / 3.0), 1),
-                "model": "LightGBM WindGusts",
-            }
-            for h in [1, 2, 3, 4, 6, 8, 12, 18, 24, 36, 48]
-        ]
-
+    # Build champion info for each task
     champions = {}
+    has_predictions = len(by_task) > 0
     for t in wind_tasks:
         ch = session.query(ModelVersion).filter_by(task=t, stage="Champion").order_by(ModelVersion.created_at.desc()).first()
         if ch:
             champions[t] = {"model": ch.model_name, "version": ch.id, "metrics": ch.metrics, "created_at": str(ch.created_at)}
         else:
-            champions[t] = {"model": f"LightGBM {t.title()}", "version": f"mv_champ_{t}", "metrics": {"mae": 1.45, "rmse": 2.10}, "created_at": str(datetime.now(timezone.utc))}
+            champions[t] = {"model": f"No Champion ({t})", "version": None, "metrics": {}, "created_at": None}
 
-    return {"location": location_id, "champions": champions, "predictions": {t: rows[:50] for t, rows in by_task.items()}}
+    response = {"location": location_id, "champions": champions, "predictions": {t: rows[:50] for t, rows in by_task.items()}}
+    if not has_predictions:
+        response["message"] = "No ML predictions available. Run the prediction pipeline to generate forecasts."
+    return response
 
 
 
