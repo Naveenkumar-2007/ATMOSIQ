@@ -2,9 +2,8 @@ import os
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.sql import text
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import text
 
 load_dotenv()
 
@@ -34,11 +33,11 @@ def _verify_engine(engine):
 
 def get_engine(url=None):
     selected_url = url or database_url()
-    engine = _engine_for(selected_url)
     try:
+        engine = _engine_for(selected_url)
         _verify_engine(engine)
         return engine
-    except SQLAlchemyError:
+    except Exception:
         if url is not None:
             raise
 

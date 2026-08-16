@@ -75,3 +75,22 @@ def test_session_uses_fallback_database_when_primary_is_unavailable(tmp_path, mo
 
     with engine.connect() as conn:
         assert conn.execute(text("SELECT 1")).scalar() == 1
+
+
+def test_api_routes_survive_broken_primary_database(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import atmosiq.api.app as app_module
+
+    monkeypatch.setenv("DATABASE_URL", "not-a-valid-sqlalchemy-url")
+    monkeypatch.setenv("ATMOSIQ_FALLBACK_DATABASE_URL", f"sqlite:///{tmp_path}/fallback-api.db")
+    app_module._LIVE_FORECAST_CACHE.clear()
+
+    with TestClient(app_module.app) as fallback_client:
+        ready = fallback_client.get("/health/ready")
+        locations = fallback_client.get("/api/v1/locations")
+        weather = fallback_client.get("/api/v1/weather/combined/kavali")
+
+    assert ready.status_code == 200
+    assert locations.status_code == 200
+    assert weather.status_code == 200
