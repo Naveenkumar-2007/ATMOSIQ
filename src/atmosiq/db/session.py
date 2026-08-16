@@ -2,12 +2,15 @@ import os
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.sql import text
 from sqlalchemy.orm import sessionmaker
 
 load_dotenv()
 
 # Dev default is SQLite so the repo runs out-of-the-box; set DATABASE_URL for PostgreSQL in production.
 DEFAULT_URL = "sqlite:///atmosiq.db"
+FALLBACK_URL = "sqlite:////tmp/atmosiq.db"
 
 
 def database_url():
@@ -19,8 +22,30 @@ def database_url():
     return url
 
 
+def _engine_for(url):
+    connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
+    return create_engine(url, pool_pre_ping=True, connect_args=connect_args)
+
+
+def _verify_engine(engine):
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+
+
 def get_engine(url=None):
-    return create_engine(url or database_url(), pool_pre_ping=True)
+    selected_url = url or database_url()
+    engine = _engine_for(selected_url)
+    try:
+        _verify_engine(engine)
+        return engine
+    except SQLAlchemyError:
+        if url is not None:
+            raise
+
+    fallback_url = os.getenv("ATMOSIQ_FALLBACK_DATABASE_URL", FALLBACK_URL)
+    fallback_engine = _engine_for(fallback_url)
+    _verify_engine(fallback_engine)
+    return fallback_engine
 
 
 SessionLocal = sessionmaker(expire_on_commit=False)

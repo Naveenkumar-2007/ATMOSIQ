@@ -61,3 +61,17 @@ def test_combined_weather_handles_incomplete_live_daily_bundle(client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["daily"]["temperature_max"] == [31.0, 31.0]
+
+
+def test_session_uses_fallback_database_when_primary_is_unavailable(tmp_path, monkeypatch):
+    from sqlalchemy import text
+
+    from atmosiq.db.session import get_engine
+
+    monkeypatch.setenv("DATABASE_URL", "sqlite:////missing-directory/atmosiq.db")
+    monkeypatch.setenv("ATMOSIQ_FALLBACK_DATABASE_URL", f"sqlite:///{tmp_path}/fallback.db")
+
+    engine = get_engine()
+
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT 1")).scalar() == 1
