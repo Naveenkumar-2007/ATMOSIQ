@@ -45,7 +45,7 @@ COPY config ./config
 COPY data_schema ./data_schema
 COPY alembic.ini ./
 COPY alembic ./alembic
-COPY artifacts ./artifacts
+RUN mkdir -p artifacts logs
 
 # Copy Next.js production build from Stage 1
 COPY --from=frontend-builder /app/frontend/package.json ./frontend/package.json
