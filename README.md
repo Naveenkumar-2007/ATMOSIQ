@@ -1,3 +1,13 @@
+---
+title: AtmosIQ Atmospheric Weather Intelligence
+emoji: 🌦️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # AtmosIQ — AI Weather Intelligence & ML Forecasting Platform
 
 [![CI](https://github.com/atmosiq/atmosiq/actions/workflows/ci.yml/badge.svg)](https://github.com/atmosiq/atmosiq/actions/workflows/ci.yml)

@@ -19,5 +19,6 @@ COPY config ./config
 COPY data_schema ./data_schema
 COPY alembic.ini ./
 COPY alembic ./alembic
+RUN mkdir -p /app/logs /app/artifacts && chown -R atmosiq:atmosiq /app
 USER atmosiq
 CMD ["python", "-m", "atmosiq.worker"]

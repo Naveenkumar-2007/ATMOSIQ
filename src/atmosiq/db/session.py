@@ -11,7 +11,10 @@ DEFAULT_URL = "sqlite:///atmosiq.db"
 
 
 def database_url():
-    return os.getenv("DATABASE_URL", DEFAULT_URL)
+    url = os.getenv("DATABASE_URL", DEFAULT_URL)
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    return url
 
 
 def get_engine(url=None):

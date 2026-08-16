@@ -15,7 +15,7 @@ services:
 
   redis:
     image: redis:7.2-alpine
-    ports: ["6379:6379"]
+    ports: ["6380:6379"]
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.12.2
@@ -30,7 +30,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://atmosiq:atmosiq@postgres:5432/atmosiq
       MLFLOW_TRACKING_URI: http://mlflow:5000
-    ports: ["8000:8000"]
+    ports: ["8001:8000"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,6 +48,16 @@ services:
       postgres:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8001
+    ports: ["3005:3000"]
+    depends_on:
+      - api
+
   prometheus:
     image: prom/prometheus:v2.51.2
     volumes: [./prometheus.yml:/etc/prometheus/prometheus.yml:ro]
@@ -57,7 +67,9 @@ services:
     image: grafana/grafana:10.4.2
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin
-    ports: ["3000:3000"]
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports: ["3001:3000"]
     depends_on: [prometheus]
 
   jaeger:

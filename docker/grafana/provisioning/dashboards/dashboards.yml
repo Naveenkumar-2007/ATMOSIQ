@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'AtmosIQ'
+    orgId: 1
+    folder: 'AtmosIQ MLOps'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
