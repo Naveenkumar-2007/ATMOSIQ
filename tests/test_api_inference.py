@@ -90,7 +90,16 @@ def test_api_routes_survive_broken_primary_database(tmp_path, monkeypatch):
         ready = fallback_client.get("/health/ready")
         locations = fallback_client.get("/api/v1/locations")
         weather = fallback_client.get("/api/v1/weather/combined/kavali")
+        models = fallback_client.get("/api/v1/models")
+        training_runs = fallback_client.get("/api/v1/mlops/training-runs")
+        performance = fallback_client.get("/api/v1/ml/performance")
 
     assert ready.status_code == 200
     assert locations.status_code == 200
     assert weather.status_code == 200
+    assert models.status_code == 200
+    assert training_runs.status_code == 200
+    assert performance.status_code == 200
+    assert len(models.json()) > 0
+    assert len(training_runs.json()) > 0
+    assert len(performance.json()["champions"]) > 0
