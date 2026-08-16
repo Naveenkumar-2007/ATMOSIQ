@@ -1,15 +1,15 @@
 #!/bin/bash
 set -e
 
-APP_PORT="${PORT:-7860}"
+APP_PORT="${PORT:-10000}"
 
-echo "=== Starting AtmosIQ 2.0 Production Stack (Port: $APP_PORT) ==="
+echo "=== Starting AtmosIQ 2.0 Production Stack (Port: $APP_PORT, Host: 0.0.0.0) ==="
 
 mkdir -p /home/user/app/logs /home/user/app/artifacts /app/logs /app/artifacts 2>/dev/null || true
 
 # Start FastAPI Inference Backend on internal port 8000
-echo "--> Starting FastAPI Inference Engine on 127.0.0.1:8000..."
-python -m uvicorn atmosiq.api.app:app --host 127.0.0.1 --port 8000 &
+echo "--> Starting FastAPI Inference Engine on 0.0.0.0:8000..."
+python -m uvicorn atmosiq.api.app:app --host 0.0.0.0 --port 8000 &
 FASTAPI_PID=$!
 
 # Wait for FastAPI to become ready
@@ -22,8 +22,8 @@ for i in {1..30}; do
   sleep 1
 done
 
-# Start Next.js Frontend on configured port ($APP_PORT)
-echo "--> Starting Next.js Web Interface on port $APP_PORT..."
+# Start Next.js Frontend on 0.0.0.0:$APP_PORT
+echo "--> Starting Next.js Web Interface on 0.0.0.0:$APP_PORT..."
 if [ -d "/home/user/app/frontend" ]; then
   cd /home/user/app/frontend
 elif [ -d "/app/frontend" ]; then
@@ -32,7 +32,7 @@ elif [ -d "./frontend" ]; then
   cd ./frontend
 fi
 
-PORT="$APP_PORT" NODE_ENV=production npx next start --port "$APP_PORT" &
+NODE_ENV=production npx next start --hostname 0.0.0.0 --port "$APP_PORT" &
 NEXT_PID=$!
 
 # Trap signals for graceful shutdown

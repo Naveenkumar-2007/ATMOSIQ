@@ -13,7 +13,7 @@ RUN npm run build
 FROM python:3.11.9-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=7860 \
+    PORT=10000 \
     DATABASE_URL="sqlite:////home/user/app/atmosiq.db" \
     HOME="/home/user" \
     PATH="/home/user/.local/bin:$PATH"
@@ -59,6 +59,6 @@ COPY docker/entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh && chown -R user:user /home/user
 
 USER user
-EXPOSE 7860
+EXPOSE 10000 7860 8000
 
 CMD ["./entrypoint.sh"]
