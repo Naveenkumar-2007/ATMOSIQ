@@ -13,34 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { WeatherIcon } from "@/components/ui/weather-icon";
+import { useTheme } from "@/lib/theme-context";
 
 export default function LandingPage() {
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
   const [searchLocation, setSearchLocation] = useState("Kavali, Andhra Pradesh");
   const [activeTab, setActiveTab] = useState<"forecast" | "mlops" | "models" | "drift">("forecast");
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "light") {
-      setIsDark(false);
-      document.documentElement.classList.remove("dark");
-    } else {
-      setIsDark(true);
-      document.documentElement.classList.add("dark");
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    if (isDark) {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-      setIsDark(false);
-    } else {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      setIsDark(true);
-    }
-  };
 
   const quickStations = ["Kavali", "Tirupati", "Nellore", "Vijayawada", "Hyderabad", "Bengaluru", "Chennai", "Delhi"];
 

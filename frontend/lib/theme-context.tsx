@@ -20,7 +20,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("dark");
 
   useEffect(() => {
-    const stored = localStorage.getItem("atmosiq-theme") as Theme | null;
+    const stored = (localStorage.getItem("atmosiq-theme") ||
+      localStorage.getItem("theme")) as Theme | null;
     if (stored === "light" || stored === "dark") {
       setThemeState(stored);
     }
@@ -36,6 +37,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.classList.add("light");
     }
     localStorage.setItem("atmosiq-theme", theme);
+    localStorage.removeItem("theme");
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
