@@ -12,3 +12,11 @@ services:
         value: production
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: MLOPS_WORKER_ENABLED
+        value: "1"
+      - key: MLOPS_RETRAIN_MODE
+        value: lightweight
+      - key: MONITOR_INTERVAL_SECONDS
+        value: "300"
+      - key: RETRAIN_INTERVAL_SECONDS
+        value: "86400"

@@ -103,3 +103,17 @@ def test_api_routes_survive_broken_primary_database(tmp_path, monkeypatch):
     assert len(models.json()) > 0
     assert len(training_runs.json()) > 0
     assert len(performance.json()["champions"]) > 0
+
+
+def test_retraining_status_and_protected_trigger(client, monkeypatch):
+    status = client.get("/api/v1/mlops/retraining/status")
+    assert status.status_code == 200
+    assert "next_retrain" in status.json()
+
+    monkeypatch.setenv("MLOPS_TRIGGER_TOKEN", "secret-token")
+    denied = client.post("/api/v1/mlops/retraining/run")
+    assert denied.status_code == 401
+
+    allowed = client.post("/api/v1/mlops/retraining/run", headers={"x-atmosiq-token": "secret-token"})
+    assert allowed.status_code == 200
+    assert allowed.json()["status"] in {"completed", "skipped"}

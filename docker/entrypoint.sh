@@ -22,6 +22,13 @@ for i in {1..30}; do
   sleep 1
 done
 
+WORKER_PID=""
+if [ "${MLOPS_WORKER_ENABLED:-1}" != "0" ]; then
+  echo "--> Starting embedded MLOps worker (monitor=${MONITOR_INTERVAL_SECONDS:-300}s, retrain=${RETRAIN_INTERVAL_SECONDS:-86400}s, mode=${MLOPS_RETRAIN_MODE:-lightweight})..."
+  python -m atmosiq.worker &
+  WORKER_PID=$!
+fi
+
 # Start Next.js Frontend on 0.0.0.0:$APP_PORT
 echo "--> Starting Next.js Web Interface on 0.0.0.0:$APP_PORT..."
 if [ -d "/home/user/app/frontend" ]; then
@@ -36,6 +43,10 @@ NODE_ENV=production npx next start --hostname 0.0.0.0 --port "$APP_PORT" &
 NEXT_PID=$!
 
 # Trap signals for graceful shutdown
-trap "kill -TERM $FASTAPI_PID $NEXT_PID" SIGTERM SIGINT
+trap "kill -TERM $FASTAPI_PID $NEXT_PID ${WORKER_PID:-}" SIGTERM SIGINT
 
-wait -n $FASTAPI_PID $NEXT_PID
+if [ -n "$WORKER_PID" ]; then
+  wait -n $FASTAPI_PID $NEXT_PID $WORKER_PID
+else
+  wait -n $FASTAPI_PID $NEXT_PID
+fi

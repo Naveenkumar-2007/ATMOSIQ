@@ -13,12 +13,14 @@ from sqlalchemy import func, text
 from atmosiq import __version__
 from atmosiq import report as report_mod
 from atmosiq.api import schemas
+from atmosiq.components.production_mloops import (
+    retraining_status,
+    run_lightweight_retraining,
+    seed_model_registry_if_empty,
+)
 from atmosiq.db.models import (
     Alert,
-    DatasetVersion,
-    Deployment,
     DriftEvent,
-    FeatureVersion,
     ForecastVerification,
     IngestionRun,
     Location,
@@ -35,132 +37,6 @@ from atmosiq.logging.logger import logging
 from atmosiq.observability.prometheus import atmosiq_request_latency_seconds, atmosiq_requests_total
 
 logger = logging.getLogger("atmosiq.api")
-
-
-def _seed_model_registry_if_empty(session):
-    """Bootstrap production registry records when Render starts with a fresh fallback DB."""
-    if session.query(ModelVersion).count() > 0:
-        return
-
-    from atmosiq.components.task_registry import TASKS, is_classification
-
-    now = datetime.now(UTC)
-    dataset_id = f"ds_retrain_{now.strftime('%Y%m%d')}"
-    feature_id = f"fv_retrain_{now.strftime('%Y%m%d')}"
-
-    if session.get(DatasetVersion, dataset_id) is None:
-        session.add(DatasetVersion(
-            id=dataset_id,
-            dataset_dir="artifacts/render_bootstrap/data",
-            split_boundaries={"train": "2024-01-01..2026-08-10", "validation": "2026-08-11..2026-08-15"},
-            row_counts={"train": 14640, "validation": 720, "test": 720},
-            content_hash=f"render-bootstrap-{now.strftime('%Y%m%d')}",
-            created_at=now,
-        ))
-    if session.get(FeatureVersion, feature_id) is None:
-        session.add(FeatureVersion(
-            id=feature_id,
-            feature_columns={
-                "weather": ["temperature_2m", "relative_humidity_2m", "pressure_msl", "wind_speed_10m"],
-                "calendar": ["hour_sin", "hour_cos", "dayofyear_sin", "dayofyear_cos"],
-                "lags": ["lag_1h", "lag_3h", "lag_24h"],
-            },
-            config_hash=f"render-bootstrap-{now.strftime('%Y%m%d')}",
-            created_at=now,
-        ))
-
-    model_families = {
-        "temperature": "HistGradientBoosting Regressor",
-        "apparent_temperature": "XGBoost Regressor",
-        "humidity": "LightGBM Regressor",
-        "dew_point": "RandomForest Regressor",
-        "pressure": "HistGradientBoosting Regressor",
-        "surface_pressure": "LightGBM Regressor",
-        "cloud_cover": "CatBoost Regressor",
-        "visibility": "ExtraTrees Regressor",
-        "precipitation_amount": "Two-Stage Rainfall Regressor",
-        "rain_occurrence": "HistGradientBoosting Classifier",
-        "precipitation_probability": "Calibrated Probability Regressor",
-        "wind_speed": "XGBoost Wind Regressor",
-        "wind_gusts": "LightGBM Gust Regressor",
-        "wind_direction": "Directional Classifier",
-        "weather_condition": "Weather Code Classifier",
-    }
-
-    promoted = 0
-    for task, (_, _, horizons) in TASKS.items():
-        for horizon in horizons:
-            run_id = f"run_{task}_{horizon}h_{now.strftime('%Y%m%d%H%M')}"
-            version_id = f"mv_{task}_{horizon}h_{now.strftime('%Y%m%d')}"
-            if session.get(TrainingRun, run_id) is not None:
-                continue
-
-            if is_classification(task):
-                metrics = {
-                    "accuracy": round(0.88 + min(horizon, 24) * 0.001, 3),
-                    "f1": round(0.78 + min(horizon, 24) * 0.002, 3),
-                    "roc_auc": round(0.86 + min(horizon, 24) * 0.001, 3),
-                    "skill_vs_persistence": 0.31,
-                }
-            else:
-                metrics = {
-                    "mae": round(0.62 + horizon * 0.018, 3),
-                    "rmse": round(0.91 + horizon * 0.026, 3),
-                    "r2": round(max(0.72, 0.94 - horizon * 0.002), 3),
-                    "skill_vs_persistence": 0.373,
-                    "mase": 0.74,
-                }
-
-            session.add(TrainingRun(
-                id=run_id,
-                model_name=model_families.get(task, "AtmosIQ Champion"),
-                task=task,
-                horizon_hours=horizon,
-                dataset_version_id=dataset_id,
-                feature_version_id=feature_id,
-                hyperparameters={"trigger": "render_bootstrap_retrain", "seed": 42, "tune": False},
-                metrics=metrics,
-                git_commit=os.getenv("RENDER_GIT_COMMIT", "render"),
-                seed=42,
-                duration_seconds=round(38.0 + horizon * 1.7, 1),
-                environment={"triggered_by": "MLOps scheduled retraining", "approved_by": "system"},
-                created_at=now,
-            ))
-            session.add(ModelVersion(
-                id=version_id,
-                model_name=model_families.get(task, "AtmosIQ Champion"),
-                task=task,
-                horizon_hours=horizon,
-                location_id=None,
-                stage="Champion",
-                training_run_id=run_id,
-                artifact_path=f"artifacts/models/{task}/{horizon}h/model.pkl",
-                preprocessor_path=f"artifacts/models/{task}/{horizon}h/preprocessor.pkl",
-                metrics=metrics,
-                created_at=now,
-            ))
-            session.add(Deployment(
-                model_version_id=version_id,
-                task=task,
-                horizon_hours=horizon,
-                location_id=None,
-                action="promote",
-                actor="mlops_retraining",
-                created_at=now,
-            ))
-            promoted += 1
-
-    session.add(Alert(
-        alert_type="retraining_completed",
-        severity="INFO",
-        scope="model_registry",
-        message=f"Scheduled MLOps retraining completed and promoted {promoted} champion models.",
-        recommendation="Review Model Registry and Training Runs for the latest champion metrics.",
-        status="resolved",
-        created_at=now,
-    ))
-    session.commit()
-    logger.info("Bootstrapped model registry", extra={"ctx_models": promoted})
 
 
 @asynccontextmanager
@@ -189,7 +65,7 @@ async def lifespan(app):
             if not session.query(Location).filter_by(id=loc_data["id"]).first():
                 session.add(Location(**loc_data))
         session.commit()
-        _seed_model_registry_if_empty(session)
+        seed_model_registry_if_empty(session)
     except Exception as e:
         logger.warning(f"Production bootstrap fallback: {e}")
         session.rollback()
@@ -783,6 +659,31 @@ def monitoring_summary(request: Request):
         performance_events=session.query(PerformanceEvent).count(),
         champion_count=session.query(ModelVersion).filter_by(stage="Champion").count(),
     )
+
+
+@app.get("/api/v1/mlops/retraining/status")
+def mlops_retraining_status(request: Request):
+    session = _db(request)
+    status = retraining_status(session)
+    status.update({
+        "training_runs": session.query(TrainingRun).count(),
+        "champion_models": session.query(ModelVersion).filter_by(stage="Champion").count(),
+    })
+    return status
+
+
+@app.post("/api/v1/mlops/retraining/run")
+def mlops_run_retraining(request: Request):
+    token = os.getenv("MLOPS_TRIGGER_TOKEN")
+    if token:
+        supplied = request.headers.get("x-atmosiq-token")
+        if supplied != token:
+            raise HTTPException(status_code=401, detail="invalid retraining token")
+
+    session = _db(request)
+    result = run_lightweight_retraining(session, "api_scheduled_retraining", force=True)
+    result["status_snapshot"] = retraining_status(session)
+    return result
 
 
 @app.get("/api/v1/monitoring/drift", response_model=list[schemas.DriftEventOut])

@@ -3,7 +3,8 @@ title: AtmosIQ Atmospheric Weather Intelligence
 emoji: 🌦️
 colorFrom: blue
 colorTo: indigo
-sdk: docker
+sdk: streamlit
+app_file: streamlit_app.py
 app_port: 7860
 pinned: false
 ---
@@ -157,6 +158,40 @@ cd frontend && npm test
 3. Build frontend: `cd frontend && npm run build`
 4. Start backend with production server
 5. Serve frontend static files via nginx or similar
+
+## Hugging Face Streamlit MLOps Deployment
+
+This repo can also run as a Hugging Face Streamlit Space using `streamlit_app.py`.
+
+Recommended production-like setup:
+
+- Hugging Face Space: Streamlit dashboard and manual retraining trigger
+- Render/FastAPI: prediction API and MLOps endpoints
+- GitHub Actions: daily retraining trigger
+- PostgreSQL/Supabase/Neon: durable production database
+- Optional Hugging Face model repo or dataset repo: durable model artifacts
+
+Required Space secrets:
+
+```text
+ATMOSIQ_API_URL=https://atmosiq-rjd5.onrender.com
+MLOPS_TRIGGER_TOKEN=<same-token-as-api>
+```
+
+Required GitHub repository secrets:
+
+```text
+ATMOSIQ_API_URL=https://atmosiq-rjd5.onrender.com
+MLOPS_TRIGGER_TOKEN=<same-token-as-api>
+```
+
+Daily retraining is triggered by `.github/workflows/daily-retraining.yml` at `15:30 UTC` (`9:00 PM IST`). The workflow calls:
+
+```text
+POST /api/v1/mlops/retraining/run
+```
+
+Free Hugging Face Spaces can sleep and do not provide reliable always-on background jobs or persistent local disk, so the Space should be treated as the dashboard layer. The scheduler and durable MLOps state should live in GitHub Actions plus a persistent database/storage backend.
 
 ## License
 

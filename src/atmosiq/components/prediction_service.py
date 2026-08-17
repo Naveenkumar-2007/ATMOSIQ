@@ -93,7 +93,10 @@ class PredictionService:
         return row
 
     def _predict_one(self, task, horizon_hours, location_id):
-        version, blob = self._load_champion(task, horizon_hours)
+        try:
+            version, blob = self._load_champion(task, horizon_hours)
+        except AtmosIQException:
+            return self._live_forecast_prediction(task, horizon_hours, location_id)
         row = self._feature_vector(location_id)
         estimator = blob["estimator"] if isinstance(blob, dict) else blob
         feature_names = getattr(estimator, "feature_names_in_", None)
@@ -136,6 +139,68 @@ class PredictionService:
             payload.update({"p10": float(q[0]), "p50": float(q[1]), "p90": float(q[2]), "lower": float(q[0]), "upper": float(q[2])})
         except AtmosIQException:
             pass
+        return payload
+
+    def _live_forecast_prediction(self, task, horizon_hours, location_id):
+        from atmosiq.db.models import ModelVersion
+
+        version = (
+            self.session.query(ModelVersion)
+            .filter_by(task=task, horizon_hours=horizon_hours, stage="Champion")
+            .order_by(ModelVersion.created_at.desc())
+            .first()
+        )
+        if version is None:
+            raise AtmosIQException(f"No champion for task={task} horizon={horizon_hours}")
+
+        loc = self.session.query(Location).filter_by(id=location_id or "kavali").first()
+        if loc is None:
+            loc = self.session.query(Location).first()
+        if loc is None:
+            raise AtmosIQException("no locations available for live forecast fallback")
+
+        provider = get_provider("open_meteo", {})
+        forecast = provider.fetch_forecast({"id": loc.id, "latitude": float(loc.latitude), "longitude": float(loc.longitude)})
+        hourly = forecast.hourly.sort_values("lead_time_hours")
+        row = hourly.loc[(hourly["lead_time_hours"] - horizon_hours).abs().idxmin()]
+
+        source_map = {
+            "temperature": "temperature_2m",
+            "apparent_temperature": "apparent_temperature",
+            "humidity": "relative_humidity_2m",
+            "dew_point": "dew_point_2m",
+            "pressure": "pressure_msl",
+            "surface_pressure": "surface_pressure",
+            "cloud_cover": "cloud_cover",
+            "visibility": "visibility",
+            "precipitation_amount": "precipitation",
+            "precipitation_probability": "precipitation_probability",
+            "wind_speed": "wind_speed_10m",
+            "wind_gusts": "wind_gusts_10m",
+            "wind_direction": "wind_direction_10m",
+            "weather_condition": "weather_code",
+        }
+        payload = {
+            "task": task,
+            "horizon_hours": horizon_hours,
+            "model": version.model_name,
+            "model_version": version.id,
+            "source": "live_open_meteo_fallback",
+        }
+        if task == "rain_occurrence":
+            prob = float(row.get("precipitation_probability", 0.0) or 0.0) / 100.0
+            payload.update({"rain_probability": prob, "rain_expected": prob >= 0.45, "optimal_threshold": 0.45, "prediction": prob})
+        elif task == "weather_condition":
+            code = int(row.get("weather_code", 0) or 0)
+            payload.update({"condition": str(code), "prediction": code})
+        elif task == "wind_direction":
+            deg = float(row.get("wind_direction_10m", 0.0) or 0.0)
+            idx = int(round(deg / 22.5)) % 16
+            payload.update({"direction": COMPASS_16[idx], "prediction": idx})
+        else:
+            col = source_map.get(task)
+            val = float(row.get(col, 0.0) or 0.0) if col else 0.0
+            payload["prediction"] = val
         return payload
 
     def predict(self, task, horizon_hours, features=None, location_id=None, issue_time=None):

@@ -1,0 +1,22 @@
+name: Daily AtmosIQ Retraining
+
+on:
+  schedule:
+    - cron: "30 15 * * *"
+  workflow_dispatch:
+
+jobs:
+  trigger-retraining:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger production retraining
+        env:
+          ATMOSIQ_API_URL: ${{ secrets.ATMOSIQ_API_URL }}
+          MLOPS_TRIGGER_TOKEN: ${{ secrets.MLOPS_TRIGGER_TOKEN }}
+        run: |
+          set -euo pipefail
+          API_URL="${ATMOSIQ_API_URL:-https://atmosiq-rjd5.onrender.com}"
+          curl --fail --show-error --silent \
+            -X POST "$API_URL/api/v1/mlops/retraining/run" \
+            -H "x-atmosiq-token: $MLOPS_TRIGGER_TOKEN" \
+            -H "content-type: application/json"
