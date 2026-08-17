@@ -56,7 +56,7 @@ COPY --from=frontend-builder /app/frontend/next.config.ts ./frontend/next.config
 
 # Copy entrypoint script and set permissions
 COPY docker/entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh && chown -R user:user /home/user
+RUN sed -i 's/\r$//' ./entrypoint.sh && chmod +x ./entrypoint.sh && chown -R user:user /home/user
 
 USER user
 EXPOSE 10000 7860 8000
